@@ -1,9 +1,7 @@
  ## Guidelines
 
- This is a python 3 implementation of optimal sampling for Federated Averaging (FedAvg) algorithm. The code is based on [TensorFlow Federated (TFF)](https://github.com/tensorflow/federated) and it is an extension of simple FedAvg example provide in [TFF examples](https://github.com/tensorflow/federated/tree/master/tensorflow_federated/python/examples/simple_fedavg). For any details such as 
-
- It enables to run simulated distributed optimization with master node on any number of workers based on [PyTorch SGD Optimizer](https://pytorch.org/docs/stable/optim.html#torch.optim.SGD) with gradient compression. Communication can be compressed on both workers and master level. Error-Feedback is also enabled. For more details, please see our [manuscript](https://arxiv.org/pdf/2006.11077.pdf).
-
+ This is a python 3 implementation of optimal sampling for Federated Averaging (FedAvg) algorithm. The code is based on [TensorFlow Federated (TFF)](https://github.com/tensorflow/federated) and it is an extension of simple FedAvg example provide in [TFF examples](https://github.com/tensorflow/federated/tree/master/tensorflow_federated/python/examples/simple_fedavg). For detailed description, please see our [manuscript](https://arxiv.org/pdf/0000.0000.pdf)
+ 
  ### Instal Dependencies and Run
  To install dependencies 
  ```sh
