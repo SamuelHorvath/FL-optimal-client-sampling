@@ -1,6 +1,6 @@
  ## Guidelines
 
- This is a python 3 implementation of optimal sampling for Federated Averaging (FedAvg) algorithm. The code is based on [TensorFlow Federated (TFF)](https://github.com/tensorflow/federated) and it is an extension of simple FedAvg example provide in [TFF examples](https://github.com/tensorflow/federated/tree/master/tensorflow_federated/python/examples/simple_fedavg). For detailed description, please see our [manuscript](https://arxiv.org/pdf/0000.0000.pdf)
+ This is a python 3 implementation of optimal sampling for Federated Averaging (FedAvg) algorithm. The code is based on [TensorFlow Federated (TFF)](https://github.com/tensorflow/federated) and it is an extension of simple FedAvg example provide in [TFF examples](https://github.com/tensorflow/federated/tree/master/tensorflow_federated/python/examples/simple_fedavg). For detailed description, please see our [manuscript](https://arxiv.org/pdf/0000.0000.pdf).
  
  ### Instal Dependencies and Run
  To install dependencies 
