@@ -22,12 +22,12 @@
  In case you find this code useful, please consider citing
 
  ```
- @article{chen2020optimal,
-   title={Optimal Client Sampling for Federated Learning},
-   author={Chen, Wenlin and Horv\'{a}th, Samuel and Richt\'{a}rik, Peter},
-   journal={arXiv preprint arXiv:0000.0000},
-   year={2020}
- }
+@article{chen2020optimal,
+  title={Optimal Client Sampling for Federated Learning},
+  author={Chen, Wenlin and Horvath, Samuel and Richtarik, Peter},
+  journal={arXiv preprint arXiv:2010.13723},
+  year={2020}
+}
  ```
  ### License
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
