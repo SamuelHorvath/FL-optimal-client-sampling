@@ -5,8 +5,10 @@
  ### Instal Dependencies and Run
  To install dependencies 
  ```sh
- pip install --quiet --upgrade tensorflow_federated
- pip install --quiet --upgrade nest_asyncio
+ conda create -n fl python=3.7
+ conda activate fl
+ pip install tensorflow_federated==0.16.1
+ pip install nest_asyncio==1.4.0
  ```
 
  Unbalanced datasets based on [EMNIST dataset](https://www.tensorflow.org/federated/api_docs/python/tff/simulation/datasets/emnist/load_data) that are used for the experiments can be downloaded [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi%3A10.7910%2FDVN%2FRZQIKP&version=DRAFT). They are expected to be located in [dataset](dataset) directory.
