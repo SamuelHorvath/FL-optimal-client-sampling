@@ -30,7 +30,7 @@ flags.DEFINE_integer('client_epochs_per_round', 1,
 flags.DEFINE_integer('batch_size', 20, 'Batch size used on the client.')
 flags.DEFINE_integer('test_batch_size', 100, 'Minibatch size of test data.')
 flags.DEFINE_bool('importance_sampling', True, 'Importance sampling is used.')
-flags.DEFINE_string('name', 'name', 'Name of the experiment.')
+flags.DEFINE_string('name', 'emnist', 'Name of the experiment.')
 flags.DEFINE_integer('random_seed', 123, 'Random seed that should be used for client sampling.')
 
 # Optimizer configuration (this defines one or more flags per optimizer).

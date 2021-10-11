@@ -111,8 +111,7 @@ def get_shakespeare_dataset():
 
 def load_model(batch_size):
     urls = {
-        1: 'https://storage.googleapis.com/tff-models-public/dickens_rnn.batch1.kerasmodel',
-        8: 'https://storage.googleapis.com/tff-models-public/dickens_rnn.batch8.kerasmodel'}
+        1: 'https://storage.googleapis.com/tff-models-public/dickens_rnn.batch1.kerasmodel'}
     assert batch_size in urls, 'batch_size must be in ' + str(urls.keys())
     url = urls[batch_size]
     local_file = tf.keras.utils.get_file(os.path.basename(url), origin=url)  
