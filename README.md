@@ -1,25 +1,27 @@
- ## Guidelines
+ ## Optimal Client Sampling for Federated Learning
 
- This is a python 3 implementation of optimal sampling for Federated Averaging (FedAvg) algorithm. The code is based on [TensorFlow Federated (TFF)](https://github.com/tensorflow/federated) and it is an extension of simple FedAvg example provide in [TFF examples](https://github.com/tensorflow/federated/tree/master/tensorflow_federated/python/examples/simple_fedavg). For detailed description, please see our [manuscript](https://arxiv.org/pdf/2010.13723.pdf).
+ This is a Python 3 implementation of Federated Averaging (FedAvg) algorithm with [Optimal Client Sampling](https://arxiv.org/pdf/2010.13723.pdf). The code is based on [TensorFlow Federated (TFF)](https://github.com/tensorflow/federated) and is an extension of simple FedAvg example provide in [TFF examples](https://github.com/tensorflow/federated/tree/master/tensorflow_federated/python/examples/simple_fedavg). For detailed description of the method, please read our [manuscript](https://arxiv.org/pdf/2010.13723.pdf).
  
- ### Instal Dependencies and Run
- To install dependencies 
+ ### Install and Test Dependencies
+ Set up a new environment and install dependencies:
  ```sh
- pip install --quiet --upgrade tensorflow_federated
- pip install --quiet --upgrade nest_asyncio
+ conda create -n fl python=3.7
+ conda activate fl
+ pip install tensorflow_federated==0.16.1
+ pip install nest_asyncio==1.4.0
  ```
 
- Unbalanced datasets based on [EMNIST dataset](https://www.tensorflow.org/federated/api_docs/python/tff/simulation/datasets/emnist/load_data) that are used for the experiments can be downloaded [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi%3A10.7910%2FDVN%2FRZQIKP&version=DRAFT). They are expected to be located in [dataset](dataset) directory.
+ For the EMNIST experiments, unbalanced datasets modified from the [EMNIST dataset](https://www.tensorflow.org/federated/api_docs/python/tff/simulation/datasets/emnist/load_data) can be downloaded [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi%3A10.7910%2FDVN%2FRZQIKP&version=DRAFT). They are expected to be located in [dataset](dataset) directory.
 
- Try to run following command to test dependencies
+ Run the following command to test dependencies:
 
  ```sh
  python emnist_fedavg_main_cookup.py --total_rounds 2
  ```
- Details on the parameters can be found in [emnist_fedavg_main_cookup.py](emnist_fedavg_main_cookup.py).
+ Details on the parameters can be found in the scripts.
 
- ### Citing
- In case you find this code useful, please consider citing
+ ### Reference
+ In case you find the method or code useful for your research, please consider citing
 
  ```
 @article{chen2020optimal,

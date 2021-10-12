@@ -27,94 +27,95 @@ flags.DEFINE_integer('j_max_iter_greedy_alg', 4,
                      'Maximum number of iteration of greedy algorithm.')
 flags.DEFINE_integer('client_epochs_per_round', 1,
                      'Number of epochs in the client to take per round.')
-flags.DEFINE_integer('batch_size', 20, 'Batch size used on the client.')
+flags.DEFINE_integer('batch_size', 1, 'Batch size used on the client.')
 flags.DEFINE_integer('test_batch_size', 100, 'Minibatch size of test data.')
 flags.DEFINE_bool('importance_sampling', True, 'Importance sampling is used.')
-flags.DEFINE_string('name', 'emnist', 'Name of the experiment.')
+flags.DEFINE_string('name', 'shakespeare', 'Name of the experiment.')
 flags.DEFINE_integer('random_seed', 123, 'Random seed that should be used for client sampling.')
 
 # Optimizer configuration (this defines one or more flags per optimizer).
 flags.DEFINE_float('server_learning_rate', 1.0, 'Server learning rate.')
 flags.DEFINE_float('client_learning_rate', 0.1, 'Client learning rate.')
 
-flags.DEFINE_string('dataset_filename', 'cookup_train_1', 'Name of the cooked dataset (without suffix).')
+#flags.DEFINE_string('dataset_filename', 'cookup_train_1', 'Name of the cooked dataset (without suffix).')
 
 FLAGS = flags.FLAGS
 
+# A fixed vocabularly of ASCII chars that occur in the works of Shakespeare and Dickens:
+vocab = list('dhlptx@DHLPTX $(,048cgkoswCGKOSW[_#\'/37;?bfjnrvzBFJNRVZ"&*.26:\naeimquyAEIMQUY]!%)-159\r')
 
-def get_emnist_dataset(dataset_filename):
-    """Loads and preprocesses the EMNIST dataset.
+# Creating a mapping from unique characters to indices
+char2idx = {u:i for i, u in enumerate(vocab)}
+idx2char = np.array(vocab)
+
+
+class FlattenedCategoricalAccuracy(tf.keras.metrics.SparseCategoricalAccuracy):
+
+    def __init__(self, name='accuracy', dtype=tf.float32):
+        super().__init__(name, dtype=dtype)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        y_true = tf.reshape(y_true, [-1, 1])
+        y_pred = tf.reshape(y_pred, [-1, len(vocab), 1])
+        return super().update_state(y_true, y_pred, sample_weight)
+
+
+def get_shakespeare_dataset():
+    """Loads and preprocesses the Shakespeare dataset.
     Returns:
-        A `(emnist_train, emnist_test)` tuple where `emnist_train` is a
+        A `(ss_train, ss_test)` tuple where `ss_train` is a
         `tff.simulation.ClientData` object representing the training data and
-        `emnist_test` is a single `tf.data.Dataset` representing the test data of
+        `ss_test` is a single `tf.data.Dataset` representing the test data of
         all clients.
     """
-    emnist_train = hdf5_client_data.HDF5ClientData(f'./dataset/{dataset_filename}.h5')
-    emnist_test = hdf5_client_data.HDF5ClientData('./dataset/test.h5')
 
-    def element_fn(element):
+    table = tf.lookup.StaticHashTable(
+        tf.lookup.KeyValueTensorInitializer(
+            keys=vocab, values=tf.constant(list(range(len(vocab))), dtype=tf.int64)
+            ),
+        default_value=0)
+
+    def to_ids(x):
+        s = tf.reshape(x['snippets'], shape=[1])
+        chars = tf.strings.bytes_split(s).values
+        ids = table.lookup(chars)
+        return ids
+
+
+    def split_input_target(chunk):
+        input_text = tf.map_fn(lambda x: x[:-1], chunk)
+        target_text = tf.map_fn(lambda x: x[1:], chunk)
         return collections.OrderedDict(
-            x=tf.expand_dims(element['pixels'], -1), y=element['label'])
+            x=input_text, y=target_text)
+
 
     def preprocess_train_dataset(dataset):
         # Use buffer_size same as the maximum client dataset size,
-        # 418 for Federated EMNIST
-        return dataset.map(element_fn).shuffle(buffer_size=418).repeat(
+        # 292 for Federated Shakespeare
+        return dataset.map(to_ids).shuffle(buffer_size=292).repeat(
              count=FLAGS.client_epochs_per_round).batch(
-                 FLAGS.batch_size, drop_remainder=False)
+                 FLAGS.batch_size, drop_remainder=False).map(split_input_target)
 
     def preprocess_test_dataset(dataset):
-        return dataset.map(element_fn).batch(
-            FLAGS.test_batch_size, drop_remainder=False)
-
-    emnist_train = emnist_train.preprocess(preprocess_train_dataset)
-    emnist_test = preprocess_test_dataset(
-        emnist_test.create_tf_dataset_from_all_clients())
-    return emnist_train, emnist_test
+        return dataset.map(to_ids).batch(
+            FLAGS.test_batch_size, drop_remainder=False).map(split_input_target)
 
 
-def create_original_fedavg_cnn_model(only_digits=True):
-    """The CNN model used in https://arxiv.org/abs/1602.05629.
-    This function is duplicated from research/optimization/emnist/models.py to
-    make this example completely stand-alone.
-    Args:
-        only_digits: If True, uses a final layer with 10 outputs, for use with the
-        digits only EMNIST dataset. If False, uses 62 outputs for the larger
-        dataset.
-    Returns:
-        An uncompiled `tf.keras.Model`.
-    """
-    data_format = 'channels_last'
-    input_shape = [28, 28, 1]
+    ss_train, ss_test = tff.simulation.datasets.shakespeare.load_data()
 
-    max_pool = functools.partial(
-        tf.keras.layers.MaxPooling2D,
-        pool_size=(2, 2),
-        padding='same',
-        data_format=data_format)
-    conv2d = functools.partial(
-        tf.keras.layers.Conv2D,
-        kernel_size=5,
-        padding='same',
-        data_format=data_format,
-        activation=tf.nn.relu,
-        kernel_initializer=tf.keras.initializers.GlorotUniform(seed=FLAGS.random_seed))
+    ss_train = ss_train.preprocess(preprocess_train_dataset)
+    ss_test = preprocess_test_dataset(
+        ss_test.create_tf_dataset_from_all_clients())
+    return ss_train, ss_test
 
-    model = tf.keras.models.Sequential([
-        conv2d(filters=32, input_shape=input_shape),
-        max_pool(),
-        conv2d(filters=64),
-        max_pool(),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(512, activation=tf.nn.relu,
-                              kernel_initializer=tf.keras.initializers.GlorotUniform(seed=FLAGS.random_seed)),
-        tf.keras.layers.Dense(10 if only_digits else 62,
-                              kernel_initializer=tf.keras.initializers.GlorotUniform(seed=FLAGS.random_seed)),
-        tf.keras.layers.Activation(tf.nn.softmax),
-    ])
 
-    return model
+def load_model(batch_size):
+    urls = {
+        1: 'https://storage.googleapis.com/tff-models-public/dickens_rnn.batch1.kerasmodel'}
+    assert batch_size in urls, 'batch_size must be in ' + str(urls.keys())
+    url = urls[batch_size]
+    local_file = tf.keras.utils.get_file(os.path.basename(url), origin=url)  
+    return tf.keras.models.load_model(local_file, compile=False)
 
 
 def server_optimizer_fn():
@@ -137,12 +138,13 @@ def main(argv):
     sess = tf.compat.v1.Session(graph=tf.compat.v1.get_default_graph(), config=session_conf)
     Kbackbend.set_session(sess)
 
-    train_data, test_data = get_emnist_dataset(FLAGS.dataset_filename)
+
+    train_data, test_data = get_shakespeare_dataset()
 
     def tff_model_fn():
         """Constructs a fully initialized model for use in federated averaging."""
-        keras_model = create_original_fedavg_cnn_model(only_digits=True)
-        loss = tf.keras.losses.SparseCategoricalCrossentropy()
+        keras_model = load_model(FLAGS.batch_size)
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         return simple_fedavg_tf.KerasModelWrapper(keras_model,
                                                   test_data.element_spec, loss)
 
@@ -156,7 +158,7 @@ def main(argv):
             FLAGS.j_max_iter_greedy_alg, FLAGS.importance_sampling, server_optimizer_fn, client_optimizer_fn)
     server_state = federated_averaging.initialize()
 
-    metric_acc = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+    metric_acc = FlattenedCategoricalAccuracy(name='test_accuracy')
     model = tff_model_fn()
 
     train_loss = []
