@@ -1,9 +1,9 @@
  ## Optimal Client Sampling for Federated Learning
 
- This is a Python 3 implementation of Federated Averaging (FedAvg) algorithm with optimal client sampling. The code is based on [TensorFlow Federated (TFF)](https://github.com/tensorflow/federated) and is an extension of simple FedAvg example provide in [TFF examples](https://github.com/tensorflow/federated/tree/master/tensorflow_federated/python/examples/simple_fedavg). For detailed description, please see our [manuscript](https://arxiv.org/pdf/2010.13723.pdf).
+ This is a Python 3 implementation of Federated Averaging (FedAvg) algorithm with [Optimal Client Sampling](https://arxiv.org/pdf/2010.13723.pdf). The code is based on [TensorFlow Federated (TFF)](https://github.com/tensorflow/federated) and is an extension of simple FedAvg example provide in [TFF examples](https://github.com/tensorflow/federated/tree/master/tensorflow_federated/python/examples/simple_fedavg). For detailed description of the method, please read our [manuscript](https://arxiv.org/pdf/2010.13723.pdf).
  
  ### Install and Test Dependencies
- Set up an environment and install dependencies:
+ Set up a new environment and install dependencies:
  ```sh
  conda create -n fl python=3.7
  conda activate fl
