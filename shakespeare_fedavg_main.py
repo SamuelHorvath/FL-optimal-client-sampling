@@ -21,25 +21,24 @@ flags.DEFINE_integer('total_rounds', 151, 'Number of total training rounds.')
 flags.DEFINE_integer('rounds_per_eval', 5, 'How often to evaluate')
 flags.DEFINE_integer('train_clients_per_round', 32,
                      'How many clients to sample per round.')
-flags.DEFINE_integer('expected_clients_per_round', 3,
+flags.DEFINE_integer('expected_clients_per_round', 2,
                      'How many clients to communicate per round.')
 flags.DEFINE_integer('j_max_iter_greedy_alg', 4,
                      'Maximum number of iteration of greedy algorithm.')
 flags.DEFINE_integer('client_epochs_per_round', 1,
                      'Number of epochs in the client to take per round.')
-flags.DEFINE_integer('batch_size', 1, 'Batch size used on the client.')
-flags.DEFINE_integer('test_batch_size', 100, 'Minibatch size of test data.')
+flags.DEFINE_integer('batch_size', 8, 'Batch size used on the client and also for test data.')
 flags.DEFINE_bool('importance_sampling', True, 'Importance sampling is used.')
 flags.DEFINE_string('name', 'shakespeare', 'Name of the experiment.')
-flags.DEFINE_integer('random_seed', 123, 'Random seed that should be used for client sampling.')
+flags.DEFINE_integer('random_seed', 1, 'Random seed that should be used for client sampling.')
+flags.DEFINE_integer('seq_len', 5, 'Sequence length.')
 
 # Optimizer configuration (this defines one or more flags per optimizer).
 flags.DEFINE_float('server_learning_rate', 1.0, 'Server learning rate.')
 flags.DEFINE_float('client_learning_rate', 0.1, 'Client learning rate.')
 
-#flags.DEFINE_string('dataset_filename', 'cookup_train_1', 'Name of the cooked dataset (without suffix).')
-
 FLAGS = flags.FLAGS
+
 
 # A fixed vocabularly of ASCII chars that occur in the works of Shakespeare and Dickens:
 vocab = list('dhlptx@DHLPTX $(,048cgkoswCGKOSW[_#\'/37;?bfjnrvzBFJNRVZ"&*.26:\naeimquyAEIMQUY]!%)-159\r')
@@ -90,15 +89,13 @@ def get_shakespeare_dataset():
 
 
     def preprocess_train_dataset(dataset):
-        # Use buffer_size same as the maximum client dataset size,
-        # 292 for Federated Shakespeare
-        return dataset.map(to_ids).shuffle(buffer_size=292).repeat(
+        return dataset.map(to_ids).unbatch().batch(FLAGS.seq_len+1, drop_remainder=True).shuffle(buffer_size=100).repeat(
              count=FLAGS.client_epochs_per_round).batch(
-                 FLAGS.batch_size, drop_remainder=False).map(split_input_target)
+                 FLAGS.batch_size, drop_remainder=True).map(split_input_target)
 
     def preprocess_test_dataset(dataset):
-        return dataset.map(to_ids).batch(
-            FLAGS.test_batch_size, drop_remainder=False).map(split_input_target)
+        return dataset.map(to_ids).unbatch().batch(FLAGS.seq_len+1, drop_remainder=True).batch(
+            FLAGS.batch_size, drop_remainder=True).map(split_input_target)
 
 
     ss_train, ss_test = tff.simulation.datasets.shakespeare.load_data()
@@ -110,12 +107,12 @@ def get_shakespeare_dataset():
 
 
 def load_model(batch_size):
-    urls = {
-        1: 'https://storage.googleapis.com/tff-models-public/dickens_rnn.batch1.kerasmodel'}
-    assert batch_size in urls, 'batch_size must be in ' + str(urls.keys())
-    url = urls[batch_size]
-    local_file = tf.keras.utils.get_file(os.path.basename(url), origin=url)  
-    return tf.keras.models.load_model(local_file, compile=False)
+    model = tf.keras.models.Sequential()
+    model.add(tf.keras.layers.Embedding(input_dim=86, output_dim=256))
+    model.add(tf.keras.layers.GRU(units=256, return_sequences=True, batch_input_shape=(batch_size, None, 256)))  # returns a sequence of vectors of dimension 32
+    model.add(tf.keras.layers.GRU(units=256, return_sequences=True))  # returns a sequence of vectors of dimension 32
+    model.add(tf.keras.layers.Dense(86))
+    return model
 
 
 def server_optimizer_fn():
@@ -148,11 +145,6 @@ def main(argv):
         return simple_fedavg_tf.KerasModelWrapper(keras_model,
                                                   test_data.element_spec, loss)
 
-    # iterative_process = simple_fedavg_tff.build_federated_averaging_process(
-    #     tff_model_fn, FLAGS.expected_clients_per_round, FLAGS.train_clients_per_round,
-    #     FLAGS.j_max_iter_greedy_alg, FLAGS.importance_sampling, server_optimizer_fn, client_optimizer_fn)
-    # server_state = iterative_process.initialize()
-
     federated_averaging = simple_fedavg_tff.FedAvg(
             tff_model_fn, FLAGS.expected_clients_per_round, FLAGS.train_clients_per_round,
             FLAGS.j_max_iter_greedy_alg, FLAGS.importance_sampling, server_optimizer_fn, client_optimizer_fn)
@@ -167,20 +159,26 @@ def main(argv):
 
     clients = train_data.client_ids
 
+    print('preprocessing...')
+    exclude_clients = []
+    for i, client in enumerate(clients):
+        client_dataset = train_data.create_tf_dataset_for_client(client)
+        len_dataset = len(list(client_dataset))
+        if len_dataset == 0:
+            exclude_clients.append(i) # exclude empty clients
+
     np.random.seed(FLAGS.random_seed)
     sampled_clients_list = [np.random.choice(
-        len(clients),
+        [i for i in range(len(clients)) if i not in exclude_clients],
         size=FLAGS.train_clients_per_round,
         replace=False) for _ in range(FLAGS.total_rounds)]
 
     for round_num in range(FLAGS.total_rounds):
         sampled_clients = [clients[i] for i in sampled_clients_list[round_num]]
-        sampled_train_data = [
-            train_data.create_tf_dataset_for_client(client)
-            for client in sampled_clients
-        ]
-        # server_state, train_metrics = iterative_process.next(
-        #     server_state, sampled_train_data)
+        sampled_train_data = []
+        for client in sampled_clients:
+            client_dataset = train_data.create_tf_dataset_for_client(client)
+            sampled_train_data.append(client_dataset)
 
         server_state, train_metrics, prob = federated_averaging.next(
             server_state, sampled_train_data)
@@ -191,8 +189,7 @@ def main(argv):
 
         if round_num % FLAGS.rounds_per_eval == 0:
             model.from_weights(server_state.model_weights)
-            accuracy = simple_fedavg_tf.keras_evaluate(model.keras_model, test_data,
-                                                       metric_acc)
+            accuracy = simple_fedavg_tf.keras_evaluate(model.keras_model, test_data, metric_acc)
             print(f'Round {round_num} validation accuracy: {accuracy * 100.0}')
             val_acc.append(accuracy)
 
