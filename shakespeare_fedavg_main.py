@@ -109,8 +109,8 @@ def get_shakespeare_dataset():
 def load_model(batch_size):
     model = tf.keras.models.Sequential()
     model.add(tf.keras.layers.Embedding(input_dim=86, output_dim=256))
-    model.add(tf.keras.layers.GRU(units=256, return_sequences=True, batch_input_shape=(batch_size, None, 256)))  # returns a sequence of vectors of dimension 32
-    model.add(tf.keras.layers.GRU(units=256, return_sequences=True))  # returns a sequence of vectors of dimension 32
+    model.add(tf.keras.layers.GRU(units=256, return_sequences=True, batch_input_shape=(batch_size, None, 256)))
+    model.add(tf.keras.layers.GRU(units=256, return_sequences=True))
     model.add(tf.keras.layers.Dense(86))
     return model
 
