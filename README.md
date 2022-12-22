@@ -24,11 +24,11 @@
  In case you find the method or code useful for your research, please consider citing
 
  ```
-@article{chen2020optimal,
+@article{chen2022optimal,
   title={Optimal Client Sampling for Federated Learning},
   author={Chen, Wenlin and Horvath, Samuel and Richtarik, Peter},
-  journal={arXiv preprint arXiv:2010.13723},
-  year={2020}
+  journal={Transactions on Machine Learning Research},
+  year={2022}
 }
  ```
  ### License
